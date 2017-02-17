@@ -1,3 +1,4 @@
+import processing as d
 import vectorutils as vec
 import sys
 
@@ -72,3 +73,7 @@ def draw_island(grid_size):
     #    points.append(x)
         
     return points
+
+def shade_coastline(coastline):
+    """ Return LINES which are the coastline shading. """
+    

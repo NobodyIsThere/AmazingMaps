@@ -67,4 +67,7 @@ l = Line(coastline_points)
 l.w = 2
 l.sublines = 2
 produce([l])
+#coastline_shading = amazing_maps.shade_coastline(coastline_points)
+#produce(coastline_shading)
+
 print ("Done.")
