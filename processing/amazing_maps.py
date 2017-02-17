@@ -36,10 +36,8 @@ def random_walk(x, step_size, max_angle, grid_size):
             angle += delta
             v = (step_size*cos(angle), step_size*sin(angle))
             v = vec.add(v, from_centroid)
-            if not vec.intersectsLine(x, vec.add(x, v), points):
+            if not vec.intersectsLine(x, vec.add(x, vec.multiply(v, 2)), points):
                 found_next = True
-            else:
-                step_size *= 0.5
         x = vec.add(x, v)
         points.append(x)
         sys.stdout.write('.')
