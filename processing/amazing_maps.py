@@ -1,4 +1,5 @@
 import processing as d
+import graph as g
 import vectorutils as vec
 import sys
 
@@ -44,6 +45,21 @@ def random_walk(x, step_size, max_angle, grid_size):
         sys.stdout.write('.')
     print ("")
     return points
+
+def random_offset(max_diameter):
+    """ Return a normally distributed number up to +-max_diameter/2 """
+    o = 0.25*max_diameter * randomGaussian()
+    if o < -0.5*max_diameter:
+        o = -0.5*max_diameter
+    if o > 0.5*max_diameter:
+        o = 0.5*max_diameter
+    return o
+
+def get_islands(image_size, grid_spacing):
+    grid = [[g.Node((i*grid_spacing+random_offset(grid_spacing),
+              j*grid_spacing+random_offset(grid_spacing)))
+              for j in image_size[1]] for i in image_size[0]]
+    
 
 def draw_island(grid_size):
     heightmap = [[0 for i in range(grid_size[1])] for j in range(grid_size[0])]
