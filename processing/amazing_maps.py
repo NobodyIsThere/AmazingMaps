@@ -3,6 +3,10 @@ import graph as g
 import vectorutils as vec
 import sys
 
+WATER = "water"
+LAND = "land"
+COASTLINE = "coastline"
+
 def min_unvisited_neighbour(x, points, sea_level, grid_size):
     neighbours = [(x[0]-1, x[1]), (x[0], x[1]-1), (x[0]+1, x[1]), (x[0], x[1]+1)]
     min_neighbour = None
@@ -54,12 +58,94 @@ def random_offset(max_diameter):
     if o > 0.5*max_diameter:
         o = 0.5*max_diameter
     return o
+    return 0
 
 def get_islands(image_size, grid_spacing):
-    grid = [[g.Node((i*grid_spacing+random_offset(grid_spacing),
-              j*grid_spacing+random_offset(grid_spacing)))
-              for j in image_size[1]] for i in image_size[0]]
+    """ Return: island outlines, heightmap as a graph """
+    print "Creating grid..."
+    grid = []
+    for i in range(image_size[0]):
+        grid.append([])
+        for j in range(image_size[1]):
+            grid[i].append( g.Node( (i*grid_spacing+random_offset(grid_spacing),
+                                  j*grid_spacing+random_offset(grid_spacing)) ) )
+            
+    print "Adding neighbours..."
+    for i in range(image_size[0]):
+        for j in range(image_size[1]):
+            # Add right, down, left, up neighbours
+            grid[i][j].neighbours = []
+            if i < image_size[0]-1:
+                grid[i][j].neighbours.append(grid[i+1][j])
+            if j < image_size[1]-1:
+                grid[i][j].neighbours.append(grid[i][j+1])
+            if i > 0:
+                grid[i][j].neighbours.append(grid[i-1][j])
+            if j > 0:
+                grid[i][j].neighbours.append(grid[i][j-1])
+            # Add SE, SW, NW, NE neighbours
+            if i < image_size[0]-1 and j < image_size[1]-1:
+                grid[i][j].neighbours.append(grid[i+1][j+1])
+            if i > 0 and j < image_size[1]-1:
+                grid[i][j].neighbours.append(grid[i-1][j+1])
+            if i > 0 and j > 0:
+                grid[i][j].neighbours.append(grid[i-1][j-1])
+            if i < image_size[0]-1 and j > 0:
+                grid[i][j].neighbours.append(grid[i+1][j-1])
+            # Set tags
+            grid[i][j].tags = [LAND if noise(grid[i][j].p[0]*0.005, grid[i][j].p[1]*0.005) > 0.4
+                                   else WATER]
     
+    print "Finding coastline..."
+    for i in range(image_size[0]):
+        for j in range(image_size[1]):
+            # Set coastline tag if we are land and a neighbour is sea
+            if LAND in grid[i][j].tags:
+                for n in grid[i][j].neighbours:
+                    if WATER in n.tags:
+                        grid[i][j].tags.append(COASTLINE)
+    
+    print "Reducing coastline..."
+    removed = 1
+    while removed > 0:
+        removed = 0
+        for i in range(image_size[0]):
+            for j in range(image_size[1]):
+                if COASTLINE in grid[i][j].tags:
+                    num_neighbours = len([n for n in grid[i][j].neighbours if COASTLINE in n.tags])
+                    if num_neighbours < 2:
+                        grid[i][j].tags.remove(COASTLINE)
+                        removed += 1
+                        
+    print "Finding islands..."
+    # Now find the island outlines
+    processed_coastline_points = []
+    islands = []
+    for i in range(image_size[0]):
+        for j in range(image_size[1]):
+            if (COASTLINE in grid[i][j].tags
+                    and grid[i][j] not in processed_coastline_points):
+                current_point = grid[i][j]
+                current_island = [current_point]
+                finished = False
+                while not finished:
+                    found_neighbour = False
+                    for n in current_point.neighbours:
+                        if n not in current_island and COASTLINE in n.tags:
+                            current_island.append(n)
+                            current_point = n
+                            point(n.p[0], n.p[1])
+                            found_neighbour = True
+                            break
+                    if not found_neighbour:
+                        finished = True
+                        if current_island[0] not in current_point.neighbours:
+                            current_island = []
+                    processed_coastline_points.append(current_point)
+                    sys.stdout.write('.')
+                if len(current_island) > 2:
+                    islands.append(current_island)
+    return islands, grid
 
 def draw_island(grid_size):
     heightmap = [[0 for i in range(grid_size[1])] for j in range(grid_size[0])]

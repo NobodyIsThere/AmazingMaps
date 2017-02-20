@@ -62,12 +62,18 @@ def demo():
     produce([l, m, n])
 
 size(640, 480)
-coastline_points = amazing_maps.draw_island((640, 480))
-l = Line(coastline_points)
-l.w = 2
-l.sublines = 2
-produce([l])
+#coastline_points = amazing_maps.draw_island((640, 480))
+#l = Line(coastline_points)
+#l.w = 2
+#l.sublines = 2
+#produce([l])
 #coastline_shading = amazing_maps.shade_coastline(coastline_points)
 #produce(coastline_shading)
+islands, grid = amazing_maps.get_islands((64, 48), 10)
+for island in islands:
+    l = Line([i.p for i in island] + [island[0].p])
+    l.w = 2
+    l.sublines = 2
+    produce([l])
 
 print ("Done.")
