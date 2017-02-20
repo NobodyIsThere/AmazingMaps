@@ -200,9 +200,68 @@ def draw_island(grid_size):
         
     return points
 
+def get_mountain_outline(a, b, first_target, steps):
+    step_size = abs(b[0] - a[0])/float(steps)
+    current_point = a
+    points = [current_point]
+    target = first_target
+    for i in range(int(steps)):
+        v = vec.normalise(vec.subtract(target, current_point))
+        v = vec.multiply(v, step_size)
+        delta = randomGaussian()
+        v = (v[0] + cos(delta), v[1] + sin(delta))
+        current_point = vec.add(current_point, v)
+        points.append(current_point)
+        target = vec.add(target, vec.multiply(vec.normalise(vec.subtract(b, target)), step_size))
+    return points
+
+def get_mountain_midline(a, w, h):
+    max_y = a[1] + h
+    current_point = a
+    points = [current_point]
+    while current_point[1] < max_y-15:
+        max_w = 0.1*w*float(current_point[1]-a[1])/h
+        current_point = (current_point[0] + randomGaussian()*max_w,
+                         current_point[1] + 0.5*random(max_y-current_point[1]))
+        points.append(current_point)
+    if points[-1][1] > max_y:
+        points = points[:-1]
+    return points
+
+def get_mountain_shading(midline, right_line, slope_vec):
+    lines = []
+    if len(midline) < 3:
+        return []
+    prev_point = midline[0]
+    current_point = midline[1]
+    for next_point in midline[2:]:
+        if (current_point[0] >= prev_point[0] and
+            current_point[0] > next_point[0]):
+            lines.append([current_point, vec.add(current_point, slope_vec)])
+        if (current_point[0] <= prev_point[0] and
+            current_point[0] < next_point[0]):
+            lines.append([current_point, vec.add(current_point, (-slope_vec[0], slope_vec[1]))])
+        prev_point = current_point
+        current_point = next_point
+    min_y = midline[0][1]
+    max_y = midline[-1][1]
+    max_x = right_line[-1][0]
+    for y in range(int(min_y)+2, int(max_y), 2):
+        start_pos = vec.line_pos(midline, (None, y))
+        end_pos = vec.line_pos(right_line, (None, y))
+        end_pos = vec.between(start_pos, end_pos, 0.6)
+        lines.append([start_pos, end_pos])
+    return lines
+
 def draw_mountain(x, y, w, h):
     """ Got to return lines here, probably. """
-    
+    resolution = 16.
+    grid_points_w = w/resolution
+    grid_points_h = h/resolution 
+    left_line = get_mountain_outline((x, y), (x-w*0.5, y+h), (x-w*0.25, y+h), grid_points_w)
+    right_line = get_mountain_outline((x, y), (x+w*0.5, y+h), (x+w*0.25, y+h), grid_points_w)
+    middle_line = get_mountain_midline((x, y), w, h)
+    return [left_line, right_line, middle_line]
 
 def shade_coastline(island):
     """ Return lists of points which are the coastline shading. """

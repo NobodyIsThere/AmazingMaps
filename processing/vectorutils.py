@@ -1,8 +1,16 @@
+INFINITY = 999999999
+
 def add(a, b):
     return (a[0] + b[0], a[1] + b[1])
 
 def angle(a):
     return atan2(a[1], a[0])
+
+def intercept(a, gradient):
+    if a[0] == 0 or gradient == INFINITY:
+        return a[1]
+    else:
+        return a[1] - gradient*a[0]
 
 def intersects(a, b, c, d):
     """ Return True if ab intersects cd. """
@@ -22,14 +30,8 @@ def intersects(a, b, c, d):
     m2 = slope(l2)
     if m1 == m2:
         return False
-    if l1[0][0] == 0:
-        c1 = l1[0][1]
-    else:
-        c1 = l1[0][1] - m1*l1[0][0]
-    if l2[0][0] == 0:
-        c2 = l2[0][1]
-    else:
-        c2 = l2[0][1] - m2*l2[0][0]
+    c1 = intercept(l1[0], m1)
+    c2 = intercept(l2[0], m2)
     x = float(c2-c1)/(m1-m2)
     #stroke(255, 0, 0)
     #print m2, c2
@@ -48,8 +50,45 @@ def intersectsLine(a, b, points):
         p_start = p_end
     return False
 
+def line_pos(l, xy):
+    """
+    Find the other coordinate of intersection of the line l with x = x or y = y
+    Note: assumes that the line is ordered according to increasing x or y.
+    """
+    start_point = l[-2]
+    end_point = l[-1]
+    if xy[0] == None:
+        # We're finding the x-coordinate
+        for i, p in enumerate(l):
+            if p[1] < xy[1]:
+                if i < len(l)-1:
+                    start_point = p
+                    end_point = l[i+1]
+        m = slope((start_point, end_point))
+        x = start_point[0]
+        if m != INFINITY:
+            c = intercept(start_point, m)
+            x = float(xy[1]-c)/m
+        return (x, xy[1])
+    if xy[1] == None:
+        # Find the y-coordinate
+        for i, p in enumerate(l):
+            if p[0] < xy[0]:
+                if i < len(l)-1:
+                    start_point = p
+                    end_point = l[i+1]
+                    break
+        m = slope((start_point, end_point))
+        y = 0.5*(start_point[1] + end_point[1])
+        if m != INFINITY:
+            c = intercept(start_point, m)
+            y = m*xy[0] + c
+        return (xy[0], y)
+
 def slope(l):
     """ Returns "m" as in y = mx + c for line l[0] -> l[1] """
+    if l[1][0] - l[0][0] == 0:
+        return INFINITY
     return float(l[1][1] - l[0][1])/(l[1][0] - l[0][0])
 
 def subtract(a, b):

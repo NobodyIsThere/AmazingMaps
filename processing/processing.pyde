@@ -93,6 +93,19 @@ for island in islands:
     l.sublines = 2
     produce([l])
 # Now let's do some mountains
-
-
+m = amazing_maps.draw_mountain(100, 100, 100, 50)
+for i in m:
+    l = Line(i)
+    l.w = 3
+    l.sublines = 3
+    l.end_small = True
+    produce([l])
+# Shade the mountain
+s = amazing_maps.get_mountain_shading(m[2], m[1], vec.multiply(vec.normalise(vec.subtract(m[1][-1], m[1][0])), 10))
+for i in s:
+    l = Line(i)
+    l.w = 2
+    l.sublines = 2
+    l.end_small = True
+    produce([l])
 print ("Done.")
