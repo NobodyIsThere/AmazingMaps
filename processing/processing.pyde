@@ -11,6 +11,8 @@ class Line:
     end_small = False
     def __init__(self, points):
         self.points = points
+    def __repr__(self):
+        return "Line " + str(self.points)
 
 def get_spline_pos(p, r, prop):
     x = p[0] + r*prop*cos(prop*2*PI)
@@ -61,19 +63,36 @@ def demo():
     n = Line([(6,50), (300,50)])
     produce([l, m, n])
 
-size(640, 480)
+size(1280, 960)
 #coastline_points = amazing_maps.draw_island((640, 480))
 #l = Line(coastline_points)
 #l.w = 2
 #l.sublines = 2
 #produce([l])
-#coastline_shading = amazing_maps.shade_coastline(coastline_points)
-#produce(coastline_shading)
-islands, grid = amazing_maps.get_islands((64, 48), 10)
+islands, grid = amazing_maps.get_islands((256, 192), 5)
 for island in islands:
+    print "Shading coastline..."
+    coastline_shading = amazing_maps.shade_coastline(island)
+    for c in coastline_shading:
+        #print c
+        l = Line(c)
+        #print l
+        l.w = 2
+        l.sublines = 2
+        l.start_small = True
+        l.end_small = True
+        produce([l])
+    print "Drawing islands..."
+    beginShape()
+    for node in island:
+        vertex(node.p[0], node.p[1])
+    endShape(CLOSE)
+    print "Outlining islands..."
     l = Line([i.p for i in island] + [island[0].p])
     l.w = 2
     l.sublines = 2
     produce([l])
+# Now let's do some mountains
+
 
 print ("Done.")

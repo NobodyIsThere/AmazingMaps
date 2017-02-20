@@ -93,7 +93,7 @@ def get_islands(image_size, grid_spacing):
             if i < image_size[0]-1 and j > 0:
                 grid[i][j].neighbours.append(grid[i+1][j-1])
             # Set tags
-            grid[i][j].tags = [LAND if noise(grid[i][j].p[0]*0.005, grid[i][j].p[1]*0.005) > 0.4
+            grid[i][j].tags = [LAND if noise(grid[i][j].p[0]*0.0025, grid[i][j].p[1]*0.0025) > 0.5
                                    else WATER]
     
     print "Finding coastline..."
@@ -104,6 +104,30 @@ def get_islands(image_size, grid_spacing):
                 for n in grid[i][j].neighbours:
                     if WATER in n.tags:
                         grid[i][j].tags.append(COASTLINE)
+    
+    print "Filling random sides..."
+    sides = round(random(4))
+    # SE, SW, NW, NE = 0, 1, 2, 3
+    # Fill right
+    if sides == 0 or sides == 3:
+        for j in range(image_size[1]):
+            if COASTLINE not in grid[image_size[0]-1][j].tags:
+                grid[image_size[0]-1][j].tags.append(COASTLINE)
+    # Down
+    if sides == 0 or sides == 1:
+        for i in range(image_size[0]):
+            if COASTLINE not in grid[i][image_size[1]-1].tags:
+                grid[i][image_size[1]-1].tags.append(COASTLINE)
+    # Left
+    if sides == 1 or sides == 2:
+        for j in range(image_size[1]):
+            if COASTLINE not in grid[0][j].tags:
+                grid[0][j].tags.append(COASTLINE)
+    # Up
+    if sides == 2 or sides == 3:
+        for i in range(image_size[0]):
+            if COASTLINE not in grid[i][0].tags:
+                grid[i][0].tags.append(COASTLINE)
     
     print "Reducing coastline..."
     removed = 1
@@ -143,7 +167,7 @@ def get_islands(image_size, grid_spacing):
                             current_island = []
                     processed_coastline_points.append(current_point)
                     sys.stdout.write('.')
-                if len(current_island) > 2:
+                if len(current_island) > 4:
                     islands.append(current_island)
     return islands, grid
 
@@ -176,6 +200,19 @@ def draw_island(grid_size):
         
     return points
 
-def shade_coastline(coastline):
-    """ Return LINES which are the coastline shading. """
+def draw_mountain(x, y, w, h):
+    """ Got to return lines here, probably. """
     
+
+def shade_coastline(island):
+    """ Return lists of points which are the coastline shading. """
+    lines = []
+    outline = [i.p for i in island] + [island[0].p]
+    c_start = outline[0]
+    for c_end in outline:
+        line_start = vec.add(vec.midpoint([c_start, c_end]), (random_offset(5)-10, 0))
+        line_end = vec.add(vec.midpoint([c_start, c_end]), (random_offset(5)+10, 0))
+        if len(lines) == 0 or abs(line_start[1] - lines[-1][0][1]) > 1:
+            lines.append([line_start, line_end])
+        c_start = c_end
+    return lines
