@@ -94,6 +94,8 @@ def draw_mountain(x, y, w, h):
         produce([l])
 
 def draw_river(points):
+    if len(points) == 0:
+        return
     l = Line(points[0:-1:2])
     l.midpoints = points[1:-1:2]
     l.points.append(points[-1])
@@ -131,24 +133,13 @@ for island in islands:
     l.w = 2
     l.sublines = 2
     produce([l])
-print "Adjusting heightmap..."
 h_sign = 1.
 if len(islands) == 0:
     noStroke()
     rect(0, 0, width, height)
     stroke(0)
-    if amazing_maps.heightmap(width/2, height/2) < 0:
-        h_sign = -1.
     islands = [[g.Node((0,0)), g.Node((width, 0)), g.Node((width, height)), g.Node((0, height))]]
-print "Normalising heightmap..."
-step_size = 25
-max_height = 0
-for x in range(0, width, step_size):
-    for y in range(0, width, step_size):
-        h = abs(amazing_maps.heightmap(x, y))
-        if h > max_height:
-            max_height = h
-h_scale = 1./max_height
+h_scale = 1.
 # Now let's do some mountains
 print "Adding mountain ranges..."
 mountain_spacing_x = 30
@@ -159,8 +150,9 @@ for island in islands:
     if len(islands) > 1:
         p = vec.midpoint([node.p for node in island])
         centre_height = amazing_maps.heightmap(p[0], p[1])
-        h_scale = 1./centre_height
+        h_scale = abs(1./centre_height)
     min_x, min_y, max_x, max_y = vec.get_bounds([node.p for node in island])
+    h_scale, h_sign = amazing_maps.get_heightmap_adjustment_for_island(island)
     for y in range(int(min_y), int(max_y), mountain_spacing_y):
         for x in range(int(min_x), int(max_x), mountain_spacing_x):
             h = h_scale*h_sign*amazing_maps.heightmap(x, y)
@@ -170,6 +162,9 @@ for island in islands:
                     print "Drawing a river!"
                     river = amazing_maps.get_river(x, y, grid, h_scale, h_sign)
                     draw_river(river)
+    for y in range(int(min_y), int(max_y), mountain_spacing_y):
+        for x in range(int(min_x), int(max_x), mountain_spacing_x):
+            h = h_scale*h_sign*amazing_maps.heightmap(x, y)
             if h > 0.75:
                 sys.stdout.write('.')
                 mountain_scale = min(h, 1)

@@ -268,10 +268,30 @@ def draw_mountain(x, y, w, h):
     middle_line = get_mountain_midline((x, y), w, h)
     return [left_line, right_line, middle_line]
 
+def get_heightmap_adjustment_for_island(island):
+    # Test the bounding box points. Most of them should be in the sea.
+    min_x, min_y, max_x, max_y = vec.get_bounds([node.p for node in island])
+    total = 0.
+    for x in range(int(min_x), int(max_x), 5):
+        total += heightmap(x, min_y)
+        total += heightmap(x, max_y)
+    for y in range(int(min_y), int(max_y), 5):
+        total += heightmap(min_x, y)
+        total += heightmap(max_x, y)
+    h_sign = 1 if total < 0 else -1
+    max_height = 0.
+    for x in range(int(min_x), int(max_x), 5):
+        for y in range(int(min_y), int(max_y), 5):
+            if h_sign*heightmap(x, y) > max_height:
+                max_height = h_sign*heightmap(x, y)
+    h_scale = 1./max_height
+    return h_scale, h_sign
+
 def get_river(x, y, grid, h_scale, h_sign):
     current_node = g.closest_grid_node((x, y), grid)
     points = [current_node.p]
-    while h_scale*h_sign*heightmap(current_node.p[0], current_node.p[1]) > 0:
+    while (COASTLINE not in current_node.tags
+               or h_scale*h_sign*heightmap(current_node.p[0], current_node.p[1]) > 0):
         next_node = current_node.neighbours[0]
         next_h = h_scale*h_sign*heightmap(next_node.p[0], next_node.p[1])
         for n in current_node.neighbours[1:]:
@@ -279,6 +299,8 @@ def get_river(x, y, grid, h_scale, h_sign):
             if h < next_h:
                 next_h = h
                 next_node = n
+        if len(points) > 1 and next_node.p == points[-2]:
+            return []
         current_node = next_node
         points.append(current_node.p)
     return points
