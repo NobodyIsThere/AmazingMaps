@@ -1,4 +1,6 @@
 import amazing_maps
+import graph as g
+import sys
 import vectorutils as vec
 
 class Line:
@@ -62,6 +64,43 @@ def demo():
     
     n = Line([(6,50), (300,50)])
     produce([l, m, n])
+    
+def draw_mountain(x, y, w, h):
+    """ Example input: (100, 100, 100, 50) """
+    m = amazing_maps.draw_mountain(x, y, w, h)
+    m[0].reverse()
+    outline = m[0] + m[1] + [m[2][-1]]
+    m[0].reverse()
+    noStroke()
+    beginShape()
+    for p in outline:
+        vertex(p[0], p[1])
+    endShape(CLOSE)
+    stroke(0)
+    for i in m:
+        l = Line(i)
+        l.w = 3
+        l.sublines = 3
+        l.end_small = True
+        produce([l])
+    # Shade the mountain
+    s = amazing_maps.get_mountain_shading(m[2], m[1],
+                                    vec.multiply(vec.normalise(vec.subtract(m[1][-1], m[1][0])), 10))
+    for i in s:
+        l = Line(i)
+        l.w = 2
+        l.sublines = 2
+        l.end_small = True
+        produce([l])
+
+def draw_river(points):
+    l = Line(points[0:-1:2])
+    l.midpoints = points[1:-1:2]
+    l.points.append(points[-1])
+    l.w = 2
+    l.sublines = 2
+    l.start_small = True
+    produce([l])
 
 size(1280, 960)
 #coastline_points = amazing_maps.draw_island((640, 480))
@@ -82,30 +121,68 @@ for island in islands:
         l.start_small = True
         l.end_small = True
         produce([l])
-    print "Drawing islands..."
+    print "Drawing island..."
     beginShape()
     for node in island:
         vertex(node.p[0], node.p[1])
     endShape(CLOSE)
-    print "Outlining islands..."
+    print "Outlining island..."
     l = Line([i.p for i in island] + [island[0].p])
     l.w = 2
     l.sublines = 2
     produce([l])
+print "Adjusting heightmap..."
+h_sign = 1.
+if len(islands) == 0:
+    noStroke()
+    rect(0, 0, width, height)
+    stroke(0)
+    if amazing_maps.heightmap(width/2, height/2) < 0:
+        h_sign = -1.
+    islands = [[g.Node((0,0)), g.Node((width, 0)), g.Node((width, height)), g.Node((0, height))]]
+print "Normalising heightmap..."
+step_size = 25
+max_height = 0
+for x in range(0, width, step_size):
+    for y in range(0, width, step_size):
+        h = abs(amazing_maps.heightmap(x, y))
+        if h > max_height:
+            max_height = h
+h_scale = 1./max_height
 # Now let's do some mountains
-m = amazing_maps.draw_mountain(100, 100, 100, 50)
-for i in m:
-    l = Line(i)
-    l.w = 3
-    l.sublines = 3
-    l.end_small = True
-    produce([l])
-# Shade the mountain
-s = amazing_maps.get_mountain_shading(m[2], m[1], vec.multiply(vec.normalise(vec.subtract(m[1][-1], m[1][0])), 10))
-for i in s:
-    l = Line(i)
-    l.w = 2
-    l.sublines = 2
-    l.end_small = True
-    produce([l])
+print "Adding mountain ranges..."
+mountain_spacing_x = 30
+mountain_spacing_y = 20
+mountain_positions = []
+same_mountain_threshold = 10.
+for island in islands:
+    if len(islands) > 1:
+        p = vec.midpoint([node.p for node in island])
+        centre_height = amazing_maps.heightmap(p[0], p[1])
+        h_scale = 1./centre_height
+    min_x, min_y, max_x, max_y = vec.get_bounds([node.p for node in island])
+    for y in range(int(min_y), int(max_y), mountain_spacing_y):
+        for x in range(int(min_x), int(max_x), mountain_spacing_x):
+            h = h_scale*h_sign*amazing_maps.heightmap(x, y)
+            if h > 0.5:
+                # We could start a river here
+                if random(1) > 0.9:
+                    print "Drawing a river!"
+                    river = amazing_maps.get_river(x, y, grid, h_scale, h_sign)
+                    draw_river(river)
+            if h > 0.75:
+                sys.stdout.write('.')
+                mountain_scale = min(h, 1)
+                mountain_y = y-50*mountain_scale
+                # Check that there is space for a mountain here
+                if vec.rect_within((x-60*mountain_scale, y-60*mountain_scale, 120*mountain_scale, 60*mountain_scale),
+                                    (min_x, min_y, max_x-min_x, max_y-min_y)):
+                    # Check that there isn't already a mountain here
+                    for mountain in mountain_positions:
+                        if vec.distance((x, mountain_y), mountain) < same_mountain_threshold:
+                            break
+                    else:
+                        draw_mountain(x+random(mountain_spacing_x)-mountain_spacing_x*0.5,
+                                      mountain_y, 100*mountain_scale, 50*mountain_scale)
+                        mountain_positions.append((x, mountain_y))
 print ("Done.")

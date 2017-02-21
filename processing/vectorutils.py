@@ -6,6 +6,22 @@ def add(a, b):
 def angle(a):
     return atan2(a[1], a[0])
 
+def get_bounds(points):
+    min_x = points[0][0]
+    min_y = points[0][1]
+    max_x = points[0][0]
+    max_y = points[0][1]
+    for p in points[1:]:
+        if p[0] < min_x:
+            min_x = p[0]
+        if p[0] > max_x:
+            max_x = p[0]
+        if p[1] < min_y:
+            min_y = p[1]
+        if p[1] > max_y:
+            max_y = p[1]
+    return min_x, min_y, max_x, max_y
+
 def intercept(a, gradient):
     if a[0] == 0 or gradient == INFINITY:
         return a[1]
@@ -55,6 +71,8 @@ def line_pos(l, xy):
     Find the other coordinate of intersection of the line l with x = x or y = y
     Note: assumes that the line is ordered according to increasing x or y.
     """
+    if len(l) < 2:
+        return (l[0][0], l[0][1])
     start_point = l[-2]
     end_point = l[-1]
     if xy[0] == None:
@@ -84,6 +102,11 @@ def line_pos(l, xy):
             c = intercept(start_point, m)
             y = m*xy[0] + c
         return (xy[0], y)
+
+def rect_within(a, b):
+    """ Returns True if rect a (x, y, w, h) is within rect b """
+    return (a[0] > b[0] and a[1] > b[1] and 
+        a[0]+a[2] < b[0]+b[2] and a[1]+a[3] < b[1]+b[3])
 
 def slope(l):
     """ Returns "m" as in y = mx + c for line l[0] -> l[1] """

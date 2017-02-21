@@ -7,6 +7,9 @@ WATER = "water"
 LAND = "land"
 COASTLINE = "coastline"
 
+def heightmap(x, y):
+    return 2*noise(x*0.0025, y*0.0025) - 1
+
 def min_unvisited_neighbour(x, points, sea_level, grid_size):
     neighbours = [(x[0]-1, x[1]), (x[0], x[1]-1), (x[0]+1, x[1]), (x[0], x[1]+1)]
     min_neighbour = None
@@ -93,7 +96,7 @@ def get_islands(image_size, grid_spacing):
             if i < image_size[0]-1 and j > 0:
                 grid[i][j].neighbours.append(grid[i+1][j-1])
             # Set tags
-            grid[i][j].tags = [LAND if noise(grid[i][j].p[0]*0.0025, grid[i][j].p[1]*0.0025) > 0.5
+            grid[i][j].tags = [LAND if heightmap(grid[i][j].p[0], grid[i][j].p[1]) > 0
                                    else WATER]
     
     print "Finding coastline..."
@@ -246,15 +249,17 @@ def get_mountain_shading(midline, right_line, slope_vec):
     min_y = midline[0][1]
     max_y = midline[-1][1]
     max_x = right_line[-1][0]
+    target = vec.between(midline[-1], right_line[-1], 0.5)
     for y in range(int(min_y)+2, int(max_y), 2):
         start_pos = vec.line_pos(midline, (None, y))
         end_pos = vec.line_pos(right_line, (None, y))
         end_pos = vec.between(start_pos, end_pos, 0.6)
         lines.append([start_pos, end_pos])
+        lines.append([start_pos, vec.between(start_pos, target, 0.5)])
     return lines
 
 def draw_mountain(x, y, w, h):
-    """ Got to return lines here, probably. """
+    """ Return left line, right line, middle line. """
     resolution = 16.
     grid_points_w = w/resolution
     grid_points_h = h/resolution 
@@ -262,6 +267,21 @@ def draw_mountain(x, y, w, h):
     right_line = get_mountain_outline((x, y), (x+w*0.5, y+h), (x+w*0.25, y+h), grid_points_w)
     middle_line = get_mountain_midline((x, y), w, h)
     return [left_line, right_line, middle_line]
+
+def get_river(x, y, grid, h_scale, h_sign):
+    current_node = g.closest_grid_node((x, y), grid)
+    points = [current_node.p]
+    while h_scale*h_sign*heightmap(current_node.p[0], current_node.p[1]) > 0:
+        next_node = current_node.neighbours[0]
+        next_h = h_scale*h_sign*heightmap(next_node.p[0], next_node.p[1])
+        for n in current_node.neighbours[1:]:
+            h = h_scale*h_sign*heightmap(n.p[0], n.p[1])
+            if h < next_h:
+                next_h = h
+                next_node = n
+        current_node = next_node
+        points.append(current_node.p)
+    return points
 
 def shade_coastline(island):
     """ Return lists of points which are the coastline shading. """
