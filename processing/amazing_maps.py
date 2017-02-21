@@ -110,24 +110,24 @@ def get_islands(image_size, grid_spacing):
     
     print "Filling random sides..."
     sides = round(random(4))
-    # SE, SW, NW, NE = 0, 1, 2, 3
-    # Fill right
-    if sides == 0 or sides == 3:
+    # NES, SEW, NWS, NEW = 0, 1, 2, 3
+    # Fill E
+    if sides == 0 or sides == 1 or sides == 3:
         for j in range(image_size[1]):
             if COASTLINE not in grid[image_size[0]-1][j].tags:
                 grid[image_size[0]-1][j].tags.append(COASTLINE)
-    # Down
-    if sides == 0 or sides == 1:
+    # S
+    if sides == 0 or sides == 1 or sides == 2:
         for i in range(image_size[0]):
             if COASTLINE not in grid[i][image_size[1]-1].tags:
                 grid[i][image_size[1]-1].tags.append(COASTLINE)
-    # Left
-    if sides == 1 or sides == 2:
+    # W
+    if sides == 1 or sides == 2 or sides == 3:
         for j in range(image_size[1]):
             if COASTLINE not in grid[0][j].tags:
                 grid[0][j].tags.append(COASTLINE)
-    # Up
-    if sides == 2 or sides == 3:
+    # N
+    if sides == 0 or sides == 2 or sides == 3:
         for i in range(image_size[0]):
             if COASTLINE not in grid[i][0].tags:
                 grid[i][0].tags.append(COASTLINE)
@@ -169,7 +169,6 @@ def get_islands(image_size, grid_spacing):
                         if current_island[0] not in current_point.neighbours:
                             current_island = []
                     processed_coastline_points.append(current_point)
-                    sys.stdout.write('.')
                 if len(current_island) > 4:
                     islands.append(current_island)
     return islands, grid
@@ -204,18 +203,20 @@ def draw_island(grid_size):
     return points
 
 def get_mountain_outline(a, b, first_target, steps):
-    step_size = abs(b[0] - a[0])/float(steps)
+    step_size = sqrt(pow(abs(b[0]-a[0]),2)+pow(abs(b[1]-a[1]),2))/float(steps)
     current_point = a
     points = [current_point]
     target = first_target
     for i in range(int(steps)):
         v = vec.normalise(vec.subtract(target, current_point))
         v = vec.multiply(v, step_size)
-        delta = randomGaussian()
+        delta = random(TWO_PI)
         v = (v[0] + cos(delta), v[1] + sin(delta))
         current_point = vec.add(current_point, v)
         points.append(current_point)
-        target = vec.add(target, vec.multiply(vec.normalise(vec.subtract(b, target)), step_size))
+        target = (lerp(first_target[0], b[0], float(i)/steps), b[1])
+        #target = vec.add(target, vec.multiply(vec.normalise(vec.subtract(b, target)), step_size))
+    #points.append(b)
     return points
 
 def get_mountain_midline(a, w, h):
@@ -257,7 +258,7 @@ def get_mountain_shading(midline, right_line, slope_vec):
 
 def draw_mountain(x, y, w, h):
     """ Return left line, right line, middle line. """
-    resolution = 16.
+    resolution = 10.
     grid_points_w = w/resolution
     grid_points_h = h/resolution 
     left_line = get_mountain_outline((x, y), (x-w*0.5, y+h), (x-w*0.25, y+h), grid_points_w)

@@ -69,7 +69,7 @@ def draw_mountain(x, y, w, h):
     """ Example input: (100, 100, 100, 50) """
     m = amazing_maps.draw_mountain(x, y, w, h)
     m[0].reverse()
-    outline = m[0] + m[1] + [m[2][-1]]
+    outline = m[0] + m[1] #+ [m[2][-1]]
     m[0].reverse()
     noStroke()
     beginShape()
@@ -84,8 +84,9 @@ def draw_mountain(x, y, w, h):
         l.end_small = True
         produce([l])
     # Shade the mountain
-    s = amazing_maps.get_mountain_shading(m[2], m[1],
-                                    vec.multiply(vec.normalise(vec.subtract(m[1][-1], m[1][0])), 10))
+    slope_vec = vec.subtract((0.5*(m[1][-1][0]+m[1][0][0]), m[1][-1][1]), m[1][0])
+    slope_vec = vec.multiply(vec.normalise(slope_vec), 10)
+    s = amazing_maps.get_mountain_shading(m[2], m[1], slope_vec)
     for i in s:
         l = Line(i)
         l.w = 2
@@ -112,16 +113,30 @@ size(1280, 960)
 #produce([l])
 islands, grid = amazing_maps.get_islands((256, 192), 5)
 print "Removing nested islands..."
+same_island_dist = 20
 to_remove = []
-for island in islands:
-    x, y, w, h = vec.get_bounds([node.p for node in island])
-    for other_island in islands:
-        ox, oy, ow, oh = vec.get_bounds([node.p for node in other_island])
-        if vec.rect_within((x, y, w, h), (ox, oy, ow, oh)):
-            to_remove.append(island)
-            break
+for i, island in enumerate(islands):
+    x, y, max_x, max_y = vec.get_bounds([node.p for node in island])
+    w = max_x-x
+    h = max_y-y
+    """stroke(255, 0, 0)
+    noFill()
+    rect(x, y, w, h)
+    stroke(0)
+    fill(255)"""
+    for other_island in islands[i:]:
+        if island is not other_island:
+            ox, oy, max_x, max_y = vec.get_bounds([node.p for node in other_island])
+            ow = max_x-ox
+            oh = max_y-oy
+            if (vec.rect_within((x, y, w, h), (ox, oy, ow, oh))
+                    or vec.distance((x+0.5*w, y+0.5*h), (ox+0.5*ow, oy+0.5*oh)) < same_island_dist):
+                to_remove.append(island)
+                break
 for island in to_remove:
     islands.remove(island)
+print "Number of islands: ", len(islands)
+
 for island in islands:
     print "Shading coastline..."
     coastline_shading = amazing_maps.shade_coastline(island)
@@ -155,6 +170,9 @@ h_scale = 1.
 print "Adding mountain ranges..."
 mountain_spacing_x = 30
 mountain_spacing_y = 20
+default_mountain_width = 90
+default_mountain_height = 40
+bounding_scale = 1.5
 mountain_positions = []
 same_mountain_threshold = 10.
 for island in islands:
@@ -179,10 +197,12 @@ for island in islands:
             if h > 0.75:
                 sys.stdout.write('.')
                 mountain_scale = min(h, 1)
-                mountain_y = y-50*0.5*mountain_scale
+                mountain_y = y-default_mountain_height*mountain_scale
                 # Check that there is space for a mountain here
-                if vec.rect_within((x-60*mountain_scale, y-60*mountain_scale,
-                                    120*mountain_scale, 60*mountain_scale),
+                if vec.rect_within((x-default_mountain_width*bounding_scale*0.5*mountain_scale,
+                                    y-default_mountain_height*bounding_scale*mountain_scale,
+                                    default_mountain_width*bounding_scale*mountain_scale,
+                                    default_mountain_height*bounding_scale*mountain_scale),
                                     (min_x, min_y, max_x-min_x, max_y-min_y)):
                     # Check that there isn't already a mountain here
                     for mountain in mountain_positions:
@@ -190,6 +210,7 @@ for island in islands:
                             break
                     else:
                         draw_mountain(x+random(mountain_spacing_x)-mountain_spacing_x*0.5,
-                                      mountain_y, 100*mountain_scale, 50*mountain_scale)
+                                      mountain_y, default_mountain_width*mountain_scale,
+                                      default_mountain_height*mountain_scale)
                         mountain_positions.append((x, mountain_y))
 print ("Done.")
