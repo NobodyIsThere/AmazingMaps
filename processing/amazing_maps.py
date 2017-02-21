@@ -161,7 +161,7 @@ def get_islands(image_size, grid_spacing):
                         if n not in current_island and COASTLINE in n.tags:
                             current_island.append(n)
                             current_point = n
-                            point(n.p[0], n.p[1])
+                            #point(n.p[0], n.p[1])
                             found_neighbour = True
                             break
                     if not found_neighbour:
@@ -252,7 +252,8 @@ def get_mountain_shading(midline, right_line, slope_vec):
         start_pos = vec.line_pos(midline, (None, y))
         end_pos = vec.line_pos(right_line, (None, y))
         end_pos = vec.between(start_pos, end_pos, 0.6)
-        lines.append([start_pos, end_pos])
+        if start_pos[1] > right_line[0][1] and end_pos[1] > right_line[0][1]:
+            lines.append([start_pos, end_pos])
         lines.append([start_pos, vec.between(start_pos, target, 0.5)])
     return lines
 

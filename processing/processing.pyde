@@ -76,6 +76,7 @@ def draw_mountain(x, y, w, h):
     for p in outline:
         vertex(p[0], p[1])
     endShape(CLOSE)
+    rect(m[0][-1][0], m[0][-1][1]-1, m[1][-1][0]-m[0][-1][0], 3)
     stroke(0)
     for i in m:
         l = Line(i)
