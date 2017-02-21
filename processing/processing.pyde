@@ -111,6 +111,17 @@ size(1280, 960)
 #l.sublines = 2
 #produce([l])
 islands, grid = amazing_maps.get_islands((256, 192), 5)
+print "Removing nested islands..."
+to_remove = []
+for island in islands:
+    x, y, w, h = vec.get_bounds([node.p for node in island])
+    for other_island in islands:
+        ox, oy, ow, oh = vec.get_bounds([node.p for node in other_island])
+        if vec.rect_within((x, y, w, h), (ox, oy, ow, oh)):
+            to_remove.append(island)
+            break
+for island in to_remove:
+    islands.remove(island)
 for island in islands:
     print "Shading coastline..."
     coastline_shading = amazing_maps.shade_coastline(island)
@@ -168,9 +179,10 @@ for island in islands:
             if h > 0.75:
                 sys.stdout.write('.')
                 mountain_scale = min(h, 1)
-                mountain_y = y-50*mountain_scale
+                mountain_y = y-50*0.5*mountain_scale
                 # Check that there is space for a mountain here
-                if vec.rect_within((x-60*mountain_scale, y-60*mountain_scale, 120*mountain_scale, 60*mountain_scale),
+                if vec.rect_within((x-60*mountain_scale, y-60*mountain_scale,
+                                    120*mountain_scale, 60*mountain_scale),
                                     (min_x, min_y, max_x-min_x, max_y-min_y)):
                     # Check that there isn't already a mountain here
                     for mountain in mountain_positions:

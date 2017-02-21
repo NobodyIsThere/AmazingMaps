@@ -238,9 +238,6 @@ def get_mountain_shading(midline, right_line, slope_vec):
     prev_point = midline[0]
     current_point = midline[1]
     for next_point in midline[2:]:
-        if (current_point[0] >= prev_point[0] and
-            current_point[0] > next_point[0]):
-            lines.append([current_point, vec.add(current_point, slope_vec)])
         if (current_point[0] <= prev_point[0] and
             current_point[0] < next_point[0]):
             lines.append([current_point, vec.add(current_point, (-slope_vec[0], slope_vec[1]))])
@@ -266,6 +263,7 @@ def draw_mountain(x, y, w, h):
     left_line = get_mountain_outline((x, y), (x-w*0.5, y+h), (x-w*0.25, y+h), grid_points_w)
     right_line = get_mountain_outline((x, y), (x+w*0.5, y+h), (x+w*0.25, y+h), grid_points_w)
     middle_line = get_mountain_midline((x, y), w, h)
+    middle_line[-1] = (middle_line[-1][0], right_line[-1][1])
     return [left_line, right_line, middle_line]
 
 def get_heightmap_adjustment_for_island(island):
@@ -273,17 +271,19 @@ def get_heightmap_adjustment_for_island(island):
     min_x, min_y, max_x, max_y = vec.get_bounds([node.p for node in island])
     total = 0.
     for x in range(int(min_x), int(max_x), 5):
-        total += heightmap(x, min_y)
-        total += heightmap(x, max_y)
+        total += heightmap(x, min_y) if int(min_y) > 0 else 0.
+        total += heightmap(x, max_y) if int(max_y) < height else 0.
     for y in range(int(min_y), int(max_y), 5):
-        total += heightmap(min_x, y)
-        total += heightmap(max_x, y)
+        total += heightmap(min_x, y) if int(min_x) > 0 else 0.
+        total += heightmap(max_x, y) if int(max_x) < width else 0.
     h_sign = 1 if total < 0 else -1
     max_height = 0.
     for x in range(int(min_x), int(max_x), 5):
         for y in range(int(min_y), int(max_y), 5):
             if h_sign*heightmap(x, y) > max_height:
                 max_height = h_sign*heightmap(x, y)
+    if max_height == 0.:
+        max_height = 1.
     h_scale = 1./max_height
     return h_scale, h_sign
 

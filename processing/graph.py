@@ -4,6 +4,7 @@ class Node:
     p = (0,0)
     neighbours = None
     tags = None
+    water_level = 0
     def __init__(self, p):
         self.p = p
         
