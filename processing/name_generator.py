@@ -42,8 +42,10 @@ def generate_name(type):
     all_tokens = token_to_string.keys()
     data = load_names(type, string_to_token)
     tokens = tokenify("", string_to_token)
-    while tokens[-1] != END_TOKEN:
-        tokens.append(get_next_token(tokens, all_tokens, data, 3))
+    while len(tokens) < 5 or len(tokens) > 12:
+        tokens = tokenify("", string_to_token)
+        while tokens[-1] != END_TOKEN:
+            tokens.append(get_next_token(tokens, all_tokens, data, 3))
     name = stringify(tokens, token_to_string)[1:-1]
     return name.title()
     
