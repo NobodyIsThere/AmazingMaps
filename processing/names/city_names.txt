@@ -78,3 +78,7 @@ simon
 lucas
 richard
 bartle
+monte
+carlo
+tree
+search

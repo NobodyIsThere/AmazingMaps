@@ -65,15 +65,12 @@ def random_offset(max_diameter):
 
 def get_islands(image_size, grid_spacing):
     """ Return: island outlines, heightmap as a graph """
-    print "Creating grid..."
     grid = []
     for i in range(image_size[0]):
         grid.append([])
         for j in range(image_size[1]):
             grid[i].append( g.Node( (i*grid_spacing+random_offset(grid_spacing),
                                   j*grid_spacing+random_offset(grid_spacing)) ) )
-            
-    print "Adding neighbours..."
     for i in range(image_size[0]):
         for j in range(image_size[1]):
             # Add right, down, left, up neighbours
@@ -99,7 +96,6 @@ def get_islands(image_size, grid_spacing):
             grid[i][j].tags = [LAND if heightmap(grid[i][j].p[0], grid[i][j].p[1]) > 0
                                    else WATER]
     
-    print "Finding coastline..."
     for i in range(image_size[0]):
         for j in range(image_size[1]):
             # Set coastline tag if we are land and a neighbour is sea
@@ -108,7 +104,6 @@ def get_islands(image_size, grid_spacing):
                     if WATER in n.tags:
                         grid[i][j].tags.append(COASTLINE)
     
-    print "Filling random sides..."
     sides = round(random(4))
     # NES, SEW, NWS, NEW = 0, 1, 2, 3
     # Fill E
@@ -132,7 +127,6 @@ def get_islands(image_size, grid_spacing):
             if COASTLINE not in grid[i][0].tags:
                 grid[i][0].tags.append(COASTLINE)
     
-    print "Reducing coastline..."
     removed = 1
     while removed > 0:
         removed = 0
@@ -274,10 +268,10 @@ def get_heightmap_adjustment_for_island(island):
     total = 0.
     for x in range(int(min_x), int(max_x), 5):
         total += heightmap(x, min_y) if int(min_y) > 0 else 0.
-        total += heightmap(x, max_y) if int(max_y) < height-1 else 0.
+        total += heightmap(x, max_y) if int(max_y) < height-2 else 0.
     for y in range(int(min_y), int(max_y), 5):
         total += heightmap(min_x, y) if int(min_x) > 0 else 0.
-        total += heightmap(max_x, y) if int(max_x) < width-1 else 0.
+        total += heightmap(max_x, y) if int(max_x) < width-2 else 0.
     h_sign = 1 if total < 0 else -1
     max_height = 0.
     for x in range(int(min_x), int(max_x), 5):
@@ -316,7 +310,7 @@ def shade_coastline(island):
     for c_end in outline:
         line_start = vec.add(vec.midpoint([c_start, c_end]), (random_offset(5)-10, 0))
         line_end = vec.add(vec.midpoint([c_start, c_end]), (random_offset(5)+10, 0))
-        if len(lines) == 0 or abs(line_start[1] - lines[-1][0][1]) > 1:
+        if len(lines) == 0 or abs(line_start[1] - lines[-1][0][1]) > 2:
             lines.append([line_start, line_end])
         c_start = c_end
     return lines

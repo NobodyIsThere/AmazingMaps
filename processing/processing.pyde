@@ -91,7 +91,7 @@ def draw_mountain(x, y, w, h):
     for p in outline:
         vertex(p[0], p[1])
     endShape(CLOSE)
-    rect(m[0][-1][0], m[0][-1][1]-1, m[1][-1][0]-m[0][-1][0], 3)
+    rect(m[0][-1][0], m[0][-1][1]-1, m[1][-1][0]-m[0][-1][0], 4)
     stroke(0)
     for i in m:
         l = Line(i)
@@ -112,6 +112,24 @@ def draw_mountain(x, y, w, h):
         produce([l])
     #stroke(0)
 
+def draw_hill(x, y):
+    hill_width = 16
+    hill_height = 4
+    noStroke()
+    beginShape()
+    vertex(x-hill_width/2, y)
+    vertex(x, y-hill_height)
+    vertex(x+hill_width/2, y)
+    endShape(CLOSE)
+    stroke(0)
+    l = Line([(x-hill_width/2, y), (x+hill_width/2, y)])
+    l.midpoints = [(x, y-hill_height)]
+    l.w = 2
+    l.sublines = 2
+    l.start_small = True
+    l.end_small = True
+    produce([l])
+
 def draw_river(points):
     if len(points) == 0:
         return
@@ -128,29 +146,53 @@ def find_label_position(p, r, h, name):
     w = textWidth(name)
     best_pos = (p[0], p[1]+r)
     best_align = (CENTER, TOP)
-    best_clarity = 0.
+    best_clarity = 0
     # S
-    prop = clarity(p[0]-0.5*w, p[1]+r, w, h)
+    prop = int(clarity(p[0]-0.5*w, p[1]+r, w, h)*100)
     if prop > best_clarity:
         best_clarity = prop
     # N
-    prop = clarity(p[0]-0.5*w, p[1]-r-h, w, h)
+    prop = int(clarity(p[0]-0.5*w, p[1]-r-h, w, h)*100)
     if prop > best_clarity:
         best_clarity = prop
         best_pos = (p[0], p[1]-r)
         best_align = (CENTER, BOTTOM)
     # W
-    prop = clarity(p[0]-r-w, p[1]-0.5*h, w, h)
+    prop = int(clarity(p[0]-r-w, p[1]-0.5*h, w, h)*100)
     if prop > best_clarity:
         best_clarity = prop
         best_pos = (p[0]-r, p[1])
         best_align = (RIGHT, CENTER)
     # E
-    prop = clarity(p[0]+r, p[1]-0.5*h, w, h)
+    prop = int(clarity(p[0]+r, p[1]-0.5*h, w, h)*100)
     if prop > best_clarity:
         best_clarity = prop
         best_pos = (p[0]+r, p[1])
         best_align = (LEFT, CENTER)
+    # SE
+    prop = int(clarity(p[0]+r, p[1]+r, w, h)*100)
+    if prop > best_clarity:
+        best_clarity = prop
+        best_pos = (p[0]+r, p[1]+r)
+        best_align = (LEFT, TOP)
+    # SW
+    prop = int(clarity(p[0]-r-w, p[1]+r, w, h)*100)
+    if prop > best_clarity:
+        best_clarity = prop
+        best_pos = (p[0]-r, p[1]+r)
+        best_align = (RIGHT, TOP)
+    # NE
+    prop = int(clarity(p[0]+r, p[1]-r-h, w, h)*100)
+    if prop > best_clarity:
+        best_clarity = prop
+        best_pos = (p[0]+r, p[1]-r)
+        best_align = (LEFT, BOTTOM)
+    # NW
+    prop = int(clarity(p[0]-r-w, p[1]-r-h, w, h)*100)
+    if prop > best_clarity:
+        best_clarity = prop
+        best_pos = (p[0]-r, p[1]-r)
+        best_align = (RIGHT, BOTTOM)
     return best_pos, best_align
 
 def remove_nested_islands(islands):
@@ -187,7 +229,7 @@ def draw_islands(islands):
             l = Line(c)
             #print l
             l.w = 2
-            l.sublines = 2
+            l.sublines = 3
             l.start_small = True
             l.end_small = True
             produce([l])
@@ -198,8 +240,8 @@ def draw_islands(islands):
         endShape(CLOSE)
         print "Outlining island..."
         l = Line([i.p for i in island] + [island[0].p])
-        l.w = 2
-        l.sublines = 2
+        l.w = 3
+        l.sublines = 6
         produce([l])
 
 def draw_mountains(islands, grid):
@@ -224,6 +266,12 @@ def draw_mountains(islands, grid):
         for y in range(int(min_y), int(max_y), mountain_spacing_y):
             for x in range(int(min_x), int(max_x), mountain_spacing_x):
                 h = h_scale*h_sign*amazing_maps.heightmap(x, y)
+                if h > 0.5 and h < 0.75:
+                    if random(1) > 0.5:
+                        the_x = random(mountain_spacing_x)-0.5*mountain_spacing_x
+                        if vec.rect_within((the_x-8, y-4, 16, 4),
+                                           (min_x, min_y, max_x-min_x, max_y-min_y)):
+                            draw_hill(the_x, y)
                 if h > 0.75:
                     mountain_scale = min(h, 1)
                     mountain_y = y-default_mountain_height*mountain_scale
@@ -247,7 +295,6 @@ def draw_cities(islands, grid):
     city_spacing = 30
     city_size = 8
     cities = []
-    fill(0)
     for island in islands:
         min_x, min_y, max_x, max_y = vec.get_bounds([node.p for node in island])
         h_scale, h_sign = amazing_maps.get_heightmap_adjustment_for_island(island)
@@ -262,9 +309,16 @@ def draw_cities(islands, grid):
     return cities
 
 size(1280, 960)
-islands, grid = amazing_maps.get_islands((256, 192), 5)
-print "Removing nested islands..."
-islands = remove_nested_islands(islands)
+islands = []
+grid = []
+l = 0
+while l < 500:
+    noiseSeed(long(random(2147483647)))
+    islands, grid = amazing_maps.get_islands((256, 192), 5)
+    islands = remove_nested_islands(islands)
+    l = sum([len(island) for island in islands])
+    if l < 500:
+        print "THAT'S NOT GOOD ENOUGH"
 print "Number of islands: ", len(islands)
 print "Drawing islands..."
 draw_islands(islands)
@@ -283,6 +337,8 @@ draw_mountains(islands, grid)
 
 # Let's do cities now.
 print "Creating cities..."
+fill(0)
+stroke(255)
 cities = draw_cities(islands, grid)
 
 # Labels
@@ -302,9 +358,9 @@ for city in cities:
     text(name, pos[0], pos[1])
 print ""
 sys.stdout.write("Naming regions...")
-region_spacing = 30
+region_spacing = 20
 textFont(georgia_bold)
-h = 14
+h = 16
 textSize(h)
 textAlign(LEFT, TOP)
 next_name = name_generator.generate_name("city").upper()
@@ -315,14 +371,14 @@ for island in islands:
     for y in range(int(min_y), int(max_y), region_spacing):
         for x in range(int(min_x), int(max_x), region_spacing):
             elev = h_scale*h_sign*amazing_maps.heightmap(x, y)
-            if clarity(x, y, w, h) > 0.99 and elev > 0:
+            if clarity(x-10, y-10, w+20, h+20) > 0.99 and elev > 0 and random(1) > 0.5:
                 text(next_name, x, y)
                 sys.stdout.write(next_name + "...")
                 next_name = name_generator.generate_name("city").upper()
                 w = textWidth(next_name)
 print ""
 sys.stdout.write("Naming islands...")
-h = 16
+h = 18
 textSize(h)
 textAlign(CENTER, TOP)
 for island in islands:
