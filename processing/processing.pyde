@@ -1,5 +1,6 @@
 import amazing_maps
 import graph as g
+import name_generator
 import sys
 import vectorutils as vec
 
@@ -51,6 +52,18 @@ def brush(l):
             draw_spline(spline_start, spline_mid, spline_end)
         x = p
 
+def clarity(x, y, w, h):
+    loadPixels()
+    totals = {}
+    for j in range(int(y), int(y+h)):
+        for i in range(int(x), int(x+w)):
+            c = pixels[j*width+i]
+            if not c in totals.keys():
+                totals[c] = 1
+            else:
+                totals[c] += 1
+    return float(max(totals.values()))/w*h
+
 def produce(lines):
     for l in lines:
         brush(l)
@@ -88,12 +101,14 @@ def draw_mountain(x, y, w, h):
     slope_vec = vec.subtract((0.5*(m[1][-1][0]+m[1][0][0]), m[1][-1][1]), m[1][0])
     slope_vec = vec.multiply(vec.normalise(slope_vec), 10)
     s = amazing_maps.get_mountain_shading(m[2], m[1], slope_vec)
+    #stroke(255, 0, 0)
     for i in s:
         l = Line(i)
         l.w = 2
         l.sublines = 2
         l.end_small = True
         produce([l])
+    #stroke(0)
 
 def draw_river(points):
     if len(points) == 0:
@@ -105,6 +120,36 @@ def draw_river(points):
     l.sublines = 2
     l.start_small = True
     produce([l])
+
+def find_label_position(p, r, h, name):
+    """ Find a place to put a label 'name' (size h) at a distance ~r away from p """
+    w = textWidth(name)
+    best_pos = (p[0], p[1]+r)
+    best_align = (CENTER, TOP)
+    best_clarity = 0.
+    # S
+    prop = clarity(p[0]-0.5*w, p[1]+r, w, h)
+    if prop > best_clarity:
+        best_clarity = prop
+    # N
+    prop = clarity(p[0]-0.5*w, p[1]-r-h, w, h)
+    if prop > best_clarity:
+        best_clarity = prop
+        best_pos = (p[0], p[1]-r)
+        best_align = (CENTER, BOTTOM)
+    # W
+    prop = clarity(p[0]-r-w, p[1]-0.5*h, w, h)
+    if prop > best_clarity:
+        best_clarity = prop
+        best_pos = (p[0]-r, p[1])
+        best_align = (RIGHT, CENTER)
+    # E
+    prop = clarity(p[0]+r, p[1]-0.5*h, w, h)
+    if prop > best_clarity:
+        best_clarity = prop
+        best_pos = (p[0]+r, p[1])
+        best_align = (LEFT, CENTER)
+    return best_pos, best_align
 
 size(1280, 960)
 #coastline_points = amazing_maps.draw_island((640, 480))
@@ -177,10 +222,6 @@ bounding_scale = 1.5
 mountain_positions = []
 same_mountain_threshold = 10.
 for island in islands:
-    if len(islands) > 1:
-        p = vec.midpoint([node.p for node in island])
-        centre_height = amazing_maps.heightmap(p[0], p[1])
-        h_scale = abs(1./centre_height)
     min_x, min_y, max_x, max_y = vec.get_bounds([node.p for node in island])
     h_scale, h_sign = amazing_maps.get_heightmap_adjustment_for_island(island)
     for y in range(int(min_y), int(max_y), mountain_spacing_y):
@@ -214,4 +255,37 @@ for island in islands:
                                       mountain_y, default_mountain_width*mountain_scale,
                                       default_mountain_height*mountain_scale)
                         mountain_positions.append((x, mountain_y))
+# Let's do cities now.
+print "Creating cities..."
+city_spacing = 30
+city_size = 8
+cities = []
+fill(0)
+for island in islands:
+    min_x, min_y, max_x, max_y = vec.get_bounds([node.p for node in island])
+    h_scale, h_sign = amazing_maps.get_heightmap_adjustment_for_island(island)
+    for y in range(int(min_y), int(max_y), city_spacing):
+        for x in range(int(min_x), int(max_x), city_spacing):
+            h = h_scale*h_sign*amazing_maps.heightmap(x, y)
+            if (h > 0 and h < 0.5) or g.closest_grid_node((x, y), grid).water_level > 1:
+                # Good place for a city
+                if random(1) > 0.9:
+                    print "Drawing a city!"
+                    rect(x-city_size/2, y-city_size/2, city_size, city_size)
+                    cities.append((x, y))
+# Labels
+print "Labelling map..."
+georgia = createFont("georgia.ttf", 32, True)
+georgia_bold = createFont("georgia_bold.ttf", 32, True)
+textFont(georgia)
+h = 12
+textSize(h)
+for city in cities:
+    name = name_generator.generate_name("city")
+    name = name.upper()
+    print name
+    pos, align = find_label_position(city, 10, h, name)
+    textAlign(align[0], align[1])
+    text(name, pos[0], pos[1])
+fill(255)
 print ("Done.")

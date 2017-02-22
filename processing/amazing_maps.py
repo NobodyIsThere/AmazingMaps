@@ -274,10 +274,10 @@ def get_heightmap_adjustment_for_island(island):
     total = 0.
     for x in range(int(min_x), int(max_x), 5):
         total += heightmap(x, min_y) if int(min_y) > 0 else 0.
-        total += heightmap(x, max_y) if int(max_y) < height else 0.
+        total += heightmap(x, max_y) if int(max_y) < height-1 else 0.
     for y in range(int(min_y), int(max_y), 5):
         total += heightmap(min_x, y) if int(min_x) > 0 else 0.
-        total += heightmap(max_x, y) if int(max_x) < width else 0.
+        total += heightmap(max_x, y) if int(max_x) < width-1 else 0.
     h_sign = 1 if total < 0 else -1
     max_height = 0.
     for x in range(int(min_x), int(max_x), 5):
@@ -293,7 +293,7 @@ def get_river(x, y, grid, h_scale, h_sign):
     current_node = g.closest_grid_node((x, y), grid)
     points = [current_node.p]
     while (COASTLINE not in current_node.tags
-               or h_scale*h_sign*heightmap(current_node.p[0], current_node.p[1]) > 0):
+               and h_scale*h_sign*heightmap(current_node.p[0], current_node.p[1]) > 0):
         next_node = current_node.neighbours[0]
         next_h = h_scale*h_sign*heightmap(next_node.p[0], next_node.p[1])
         for n in current_node.neighbours[1:]:
@@ -305,6 +305,7 @@ def get_river(x, y, grid, h_scale, h_sign):
             return []
         current_node = next_node
         points.append(current_node.p)
+        current_node.water_level += 1
     return points
 
 def shade_coastline(island):
