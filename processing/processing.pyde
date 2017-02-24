@@ -91,7 +91,7 @@ def draw_mountain(x, y, w, h):
     for p in outline:
         vertex(p[0], p[1])
     endShape(CLOSE)
-    rect(m[0][-1][0], m[0][-1][1]-1, m[1][-1][0]-m[0][-1][0], 4)
+    rect(m[0][-1][0], m[0][-1][1]-1, m[1][-1][0]-m[0][-1][0], h+2-(m[0][-1][1]-m[0][0][1]))
     stroke(0)
     for i in m:
         l = Line(i)
@@ -129,6 +129,8 @@ def draw_hill(x, y):
     l.start_small = True
     l.end_small = True
     produce([l])
+    noStroke()
+    rect(x-hill_width/2, y, hill_width, 2)
 
 def draw_river(points):
     if len(points) == 0:
@@ -144,6 +146,9 @@ def draw_river(points):
 def find_label_position(p, r, h, name):
     """ Find a place to put a label 'name' (size h) at a distance ~r away from p """
     w = textWidth(name)
+    border = 4
+    w += border
+    h += border
     best_pos = (p[0], p[1]+r)
     best_align = (CENTER, TOP)
     best_clarity = 0
@@ -207,8 +212,8 @@ def remove_nested_islands(islands):
         rect(x, y, w, h)
         stroke(0)
         fill(255)"""
-        for other_island in islands[i:]:
-            if island is not other_island:
+        for other_island in islands:
+            if island is not other_island and other_island not in to_remove:
                 ox, oy, max_x, max_y = vec.get_bounds([node.p for node in other_island])
                 ow = max_x-ox
                 oh = max_y-oy
@@ -218,6 +223,7 @@ def remove_nested_islands(islands):
                     break
     for island in to_remove:
         islands.remove(island)
+    print "Removed " + str(len(to_remove)) + " islands (nested)."
     return islands
 
 def draw_islands(islands):
@@ -268,7 +274,7 @@ def draw_mountains(islands, grid):
                 h = h_scale*h_sign*amazing_maps.heightmap(x, y)
                 if h > 0.5 and h < 0.75:
                     if random(1) > 0.5:
-                        the_x = random(mountain_spacing_x)-0.5*mountain_spacing_x
+                        the_x = x + random(mountain_spacing_x)-0.5*mountain_spacing_x
                         if vec.rect_within((the_x-8, y-4, 16, 4),
                                            (min_x, min_y, max_x-min_x, max_y-min_y)):
                             draw_hill(the_x, y)
@@ -301,7 +307,7 @@ def draw_cities(islands, grid):
         for y in range(int(min_y), int(max_y), city_spacing):
             for x in range(int(min_x), int(max_x), city_spacing):
                 h = h_scale*h_sign*amazing_maps.heightmap(x, y)
-                if (h > 0 and h < 0.5) or g.closest_grid_node((x, y), grid).water_level > 1:
+                if h > 0 and (h < 0.5 or g.closest_grid_node((x, y), grid).water_level > 1):
                     # Good place for a city
                     if random(1) > 0.9:
                         rect(x-city_size/2, y-city_size/2, city_size, city_size)
@@ -312,12 +318,12 @@ size(1280, 960)
 islands = []
 grid = []
 l = 0
-while l < 500:
+while l < 400:
     noiseSeed(long(random(2147483647)))
     islands, grid = amazing_maps.get_islands((256, 192), 5)
     islands = remove_nested_islands(islands)
     l = sum([len(island) for island in islands])
-    if l < 500:
+    if l < 400:
         print "THAT'S NOT GOOD ENOUGH"
 print "Number of islands: ", len(islands)
 print "Drawing islands..."
@@ -353,7 +359,7 @@ for city in cities:
     name = name_generator.generate_name("city")
     name = name.upper()
     sys.stdout.write(name + '...')
-    pos, align = find_label_position(city, 10, h, name)
+    pos, align = find_label_position(city, 8, h, name)
     textAlign(align[0], align[1])
     text(name, pos[0], pos[1])
 print ""

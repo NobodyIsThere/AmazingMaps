@@ -268,10 +268,10 @@ def get_heightmap_adjustment_for_island(island):
     total = 0.
     for x in range(int(min_x), int(max_x), 5):
         total += heightmap(x, min_y) if int(min_y) > 0 else 0.
-        total += heightmap(x, max_y) if int(max_y) < height-2 else 0.
+        total += heightmap(x, max_y) if int(max_y) < height-10 else 0.
     for y in range(int(min_y), int(max_y), 5):
         total += heightmap(min_x, y) if int(min_x) > 0 else 0.
-        total += heightmap(max_x, y) if int(max_x) < width-2 else 0.
+        total += heightmap(max_x, y) if int(max_x) < width-10 else 0.
     h_sign = 1 if total < 0 else -1
     max_height = 0.
     for x in range(int(min_x), int(max_x), 5):
