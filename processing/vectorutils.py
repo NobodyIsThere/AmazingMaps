@@ -1,4 +1,4 @@
-INFINITY = 999999999
+INFINITY = 999999999 # == hackiness level
 
 def add(a, b):
     return (a[0] + b[0], a[1] + b[1])
@@ -33,15 +33,6 @@ def intersects(a, b, c, d):
     # l1 and l2 are the two lines but with the left-most points first.
     l1 = (a, b) if a[0] < b[0] else (b, a)
     l2 = (c, d) if c[0] < d[0] else (d, c)
-    """if l1[0][0] < l2[0][0] and l1[1][0] < l2[0][0]:
-        return False
-    if l2[0][0] < l1[0][0] and l2[1][0] < l1[0][0]:
-        return False
-    if l1[0][1] < l2[0][1] and l1[0][1] < l2[1][1] and l1[1][1] < l2[0][1] and l1[1][1] < l2[1][1]:
-        return False
-    if l2[0][1] < l1[0][1] and l2[0][1] < l1[1][1] and l2[1][1] < l1[0][1] and l2[1][1] < l1[1][1]:
-        return False"""
-    # The lines might actually intersect!
     m1 = slope(l1)
     m2 = slope(l2)
     if m1 == m2:
@@ -49,16 +40,11 @@ def intersects(a, b, c, d):
     c1 = intercept(l1[0], m1)
     c2 = intercept(l2[0], m2)
     x = float(c2-c1)/(m1-m2)
-    #stroke(255, 0, 0)
-    #print m2, c2
-    #point(x, m1*x + c1)
-    #stroke(0, 0, 0)
     if x > l1[0][0] and x > l2[0][0] and x < l1[1][0] and x < l2[1][0]:
-        #print ("intersection :(")
         return True
     return False
 
-def intersectsLine(a, b, points):
+def intersects_line(a, b, points):
     p_start = points[0]
     for p_end in points[1:]:
         if intersects(a, b, p_start, p_end):
@@ -152,6 +138,7 @@ def inList(a, l):
     return False
 
 def perp(a):
+    """ Perpendicular """
     if a[0] == 0:
         return (1, 0);
     if a[1] == 0:
@@ -160,5 +147,5 @@ def perp(a):
     perp_vector = multiply(perp_vector, 1/mag(perp_vector))
     return perp_vector
 
-def toInt(a):
+def to_int(a):
     return (int(a[0]), int(a[1]))

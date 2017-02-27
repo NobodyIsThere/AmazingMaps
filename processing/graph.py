@@ -9,7 +9,8 @@ class Node:
         self.p = p
         
     def __repr__(self):
-        return "Node " + str(self.p) + "\n Neighbours: " + str(len(self.neighbours)) + "\n Tags: " + str(self.tags)
+        return ("Node " + str(self.p) + "\n Neighbours: " +
+            str(len(self.neighbours)) + "\n Tags: " + str(self.tags))
     
 def closest_grid_node(p, grid):
     closest_node = grid[0][0]

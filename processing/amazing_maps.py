@@ -10,49 +10,6 @@ COASTLINE = "coastline"
 def heightmap(x, y):
     return 2*noise(x*0.0025, y*0.0025) - 1
 
-def min_unvisited_neighbour(x, points, sea_level, grid_size):
-    neighbours = [(x[0]-1, x[1]), (x[0], x[1]-1), (x[0]+1, x[1]), (x[0], x[1]+1)]
-    min_neighbour = None
-    min_height = 1
-    for n in neighbours:
-        n = vec.toInt(n)
-        if n[0] < 0 or n[0] >= grid_size[0] or n[1] < 0 or n[1] >= grid_size[1]:
-            continue
-        elif vec.inList(n, points) and not vec.equal(n, points[0]):
-            continue
-        elif len(points) > 1 and vec.equal(n, points[-2]):
-            continue
-        else:
-            elevation = abs(noise(n[0], n[1]) - noise(x[0], x[1]))
-            if elevation < min_height:
-                min_height = elevation
-                min_neighbour = n
-    return min_neighbour
-
-def random_walk(x, step_size, max_angle, grid_size):
-    points = [x]
-    angle = vec.angle(vec.subtract((grid_size[0]/2, grid_size[1]/2), x))
-    while x[0] >= 0 and x[0] < grid_size[0] and x[1] >= 0 and x[1] < grid_size[1]:
-        found_next = False
-        while not found_next:
-            delta = randomGaussian()
-            if delta < -max_angle:
-                delta = -max_angle
-            if delta > max_angle:
-                delta = max_angle
-            centroid = vec.midpoint(points)
-            from_centroid = vec.normalise(vec.subtract(x, centroid))
-            angle += delta
-            v = (step_size*cos(angle), step_size*sin(angle))
-            v = vec.add(v, from_centroid)
-            if not vec.intersectsLine(x, vec.add(x, vec.multiply(v, 2)), points):
-                found_next = True
-        x = vec.add(x, v)
-        points.append(x)
-        sys.stdout.write('.')
-    print ("")
-    return points
-
 def random_offset(max_diameter):
     """ Return a normally distributed number up to +-max_diameter/2 """
     o = 0.25*max_diameter * randomGaussian()
@@ -61,16 +18,15 @@ def random_offset(max_diameter):
     if o > 0.5*max_diameter:
         o = 0.5*max_diameter
     return o
-    return 0
 
 def get_islands(image_size, grid_spacing):
-    """ Return: island outlines, heightmap as a graph """
+    """ Return: island outlines plus the grid with info. """
     grid = []
     for i in range(image_size[0]):
         grid.append([])
         for j in range(image_size[1]):
-            grid[i].append( g.Node( (i*grid_spacing+random_offset(grid_spacing),
-                                  j*grid_spacing+random_offset(grid_spacing)) ) )
+            grid[i].append(g.Node( (i*grid_spacing+random_offset(grid_spacing),
+                                  j*grid_spacing+random_offset(grid_spacing)) ))
     for i in range(image_size[0]):
         for j in range(image_size[1]):
             # Add right, down, left, up neighbours
@@ -93,7 +49,8 @@ def get_islands(image_size, grid_spacing):
             if i < image_size[0]-1 and j > 0:
                 grid[i][j].neighbours.append(grid[i+1][j-1])
             # Set tags
-            grid[i][j].tags = [LAND if heightmap(grid[i][j].p[0], grid[i][j].p[1]) > 0
+            grid[i][j].tags = [LAND if heightmap(grid[i][j].p[0],
+                                                 grid[i][j].p[1]) > 0
                                    else WATER]
     
     for i in range(image_size[0]):
@@ -104,6 +61,8 @@ def get_islands(image_size, grid_spacing):
                     if WATER in n.tags:
                         grid[i][j].tags.append(COASTLINE)
     
+    # Fill in three random sides of the image to make it more likely that
+    # coastlines will join up. (hackiness levels at 85%)
     sides = round(random(4))
     # NES, SEW, NWS, NEW = 0, 1, 2, 3
     # Fill E
@@ -127,19 +86,22 @@ def get_islands(image_size, grid_spacing):
             if COASTLINE not in grid[i][0].tags:
                 grid[i][0].tags.append(COASTLINE)
     
+    # Now reduce the coastline by repeatedly removing dead ends. (90%)
     removed = 1
     while removed > 0:
         removed = 0
         for i in range(image_size[0]):
             for j in range(image_size[1]):
                 if COASTLINE in grid[i][j].tags:
-                    num_neighbours = len([n for n in grid[i][j].neighbours if COASTLINE in n.tags])
+                    num_neighbours = len([n for n in grid[i][j].neighbours
+                                          if COASTLINE in n.tags])
                     if num_neighbours < 2:
                         grid[i][j].tags.remove(COASTLINE)
                         removed += 1
                         
     print "Finding islands..."
-    # Now find the island outlines
+    # Now find the island outlines by choosing a point and then exploring until
+    # you get back to your starting point. (110%)
     processed_coastline_points = []
     islands = []
     for i in range(image_size[0]):
@@ -155,7 +117,6 @@ def get_islands(image_size, grid_spacing):
                         if n not in current_island and COASTLINE in n.tags:
                             current_island.append(n)
                             current_point = n
-                            #point(n.p[0], n.p[1])
                             found_neighbour = True
                             break
                     if not found_neighbour:
@@ -167,36 +128,13 @@ def get_islands(image_size, grid_spacing):
                     islands.append(current_island)
     return islands, grid
 
-def draw_island(grid_size):
-    heightmap = [[0 for i in range(grid_size[1])] for j in range(grid_size[0])]
-    side = round(random(4))
-    x = (0,0)
-    if side == 0:
-        x = (0, round(random(grid_size[1])))
-    if side == 1:
-        x = (round(random(grid_size[0])), 0)
-    if side == 2:
-        x = (grid_size[0]-1, round(random(grid_size[1])))
-    if side == 3:
-        x = (round(random(grid_size[0])), grid_size[1]-1)
-    points = [x]
-    sea_level = noise(x[0], x[1])
-    for i, row in enumerate(heightmap):
-        for j, item in enumerate(row):
-            heightmap[i][j] = noise(i, j)
-    points = random_walk(x, 5, QUARTER_PI, grid_size)
-    
-    
-    #while (min_unvisited_neighbour(x, points, sea_level, grid_size)):
-    #    x = min_unvisited_neighbour(x, points, sea_level, grid_size)
-    #    print("Point " + str(x))
-    #    print("Elevation: " + str(noise(x[0], x[1])) + "/" + str(sea_level))
-    #    print("Points: " + str(points))
-    #    points.append(x)
-        
-    return points
-
 def get_mountain_outline(a, b, first_target, steps):
+    """
+    Return a set of points representing a mountainside.
+    (you need to do this for each side of the mountain)
+    The points will lead from a to b.
+    Last point not guaranteed to be exactly b.
+    """
     step_size = sqrt(pow(abs(b[0]-a[0]),2)+pow(abs(b[1]-a[1]),2))/float(steps)
     current_point = a
     points = [current_point]
@@ -209,11 +147,13 @@ def get_mountain_outline(a, b, first_target, steps):
         current_point = vec.add(current_point, v)
         points.append(current_point)
         target = (lerp(first_target[0], b[0], float(i)/steps), b[1])
-        #target = vec.add(target, vec.multiply(vec.normalise(vec.subtract(b, target)), step_size))
-    #points.append(b)
     return points
 
 def get_mountain_midline(a, w, h):
+    """
+    Return a wiggly line that tries to stay within the isosceles triangle with
+    top point a, height h and base width w.
+    """
     max_y = a[1] + h
     current_point = a
     points = [current_point]
@@ -235,7 +175,9 @@ def get_mountain_shading(midline, right_line, slope_vec):
     for next_point in midline[2:]:
         if (current_point[0] <= prev_point[0] and
             current_point[0] < next_point[0]):
-            lines.append([current_point, vec.add(current_point, (-slope_vec[0], slope_vec[1]))])
+            lines.append([current_point,
+                          vec.add(current_point,
+                                  (-slope_vec[0], slope_vec[1]))])
         prev_point = current_point
         current_point = next_point
     min_y = midline[0][1]
@@ -256,8 +198,10 @@ def draw_mountain(x, y, w, h):
     resolution = 10.
     grid_points_w = w/resolution
     grid_points_h = h/resolution 
-    left_line = get_mountain_outline((x, y), (x-w*0.5, y+h), (x-w*0.25, y+h), grid_points_w)
-    right_line = get_mountain_outline((x, y), (x+w*0.5, y+h), (x+w*0.25, y+h), grid_points_w)
+    left_line = get_mountain_outline((x, y), (x-w*0.5, y+h),
+                                     (x-w*0.25, y+h), grid_points_w)
+    right_line = get_mountain_outline((x, y), (x+w*0.5, y+h),
+                                      (x+w*0.25, y+h), grid_points_w)
     middle_line = get_mountain_midline((x, y), w, h)
     middle_line[-1] = (middle_line[-1][0], right_line[-1][1])
     return [left_line, right_line, middle_line]
@@ -284,10 +228,15 @@ def get_heightmap_adjustment_for_island(island):
     return h_scale, h_sign
 
 def get_river(x, y, grid, h_scale, h_sign):
+    """
+    Return points describing a river starting from the grid point closest
+    to (x, y).
+    """
     current_node = g.closest_grid_node((x, y), grid)
     points = [current_node.p]
     while (COASTLINE not in current_node.tags
-               and h_scale*h_sign*heightmap(current_node.p[0], current_node.p[1]) > 0):
+               and h_scale*h_sign*heightmap(current_node.p[0],
+                                                current_node.p[1]) > 0):
         next_node = current_node.neighbours[0]
         next_h = h_scale*h_sign*heightmap(next_node.p[0], next_node.p[1])
         for n in current_node.neighbours[1:]:
@@ -303,13 +252,15 @@ def get_river(x, y, grid, h_scale, h_sign):
     return points
 
 def shade_coastline(island):
-    """ Return lists of points which are the coastline shading. """
+    """ Return lists of points which are the coastline hatching. """
     lines = []
     outline = [i.p for i in island] + [island[0].p]
     c_start = outline[0]
     for c_end in outline:
-        line_start = vec.add(vec.midpoint([c_start, c_end]), (random_offset(5)-10, 0))
-        line_end = vec.add(vec.midpoint([c_start, c_end]), (random_offset(5)+10, 0))
+        line_start = vec.add(vec.midpoint([c_start, c_end]),
+                             (random_offset(5)-10, 0))
+        line_end = vec.add(vec.midpoint([c_start, c_end]),
+                           (random_offset(5)+10, 0))
         if len(lines) == 0 or abs(line_start[1] - lines[-1][0][1]) > 2:
             lines.append([line_start, line_end])
         c_start = c_end

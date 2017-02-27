@@ -1,8 +1,8 @@
 rory
 davidson
 carlos
-gonzalez
-diaz
+gonz¡lez
+dÕaz
 raluca
 gaina
 thryn
@@ -19,6 +19,7 @@ romero
 adam
 sattaur
 henrik
+siljebr≈t
 rokas
 volkovas
 jen
@@ -39,7 +40,8 @@ chris
 madge
 emily
 marriott
-zoe
+zoÀ
+o'shea
 dino
 ratcliffe
 stefan
